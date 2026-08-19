@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Run state (a run directory is never part of the repo)
+.arc/
+
+# macOS
+.DS_Store

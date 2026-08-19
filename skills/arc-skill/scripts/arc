@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+skill_dir="$(cd "$(dirname "$0")/.." && pwd)"
+export MPLCONFIGDIR="${TMPDIR:-/tmp}/arc-skill-runtime-${UID:-0}/matplotlib"
+export UV_CACHE_DIR="${TMPDIR:-/tmp}/arc-skill-runtime-${UID:-0}/uv-cache"
+export UV_NO_PROGRESS=1
+mkdir -p "$MPLCONFIGDIR" "$UV_CACHE_DIR"
+
+compatible='import sys, importlib.metadata as m; assert sys.version_info >= (3, 12); assert m.version("arc-agi") == "0.9.9"; import numpy, PIL; assert 2 <= int(numpy.__version__.split(".")[0]) < 3; assert 10 <= int(PIL.__version__.split(".")[0]) < 13'
+
+if command -v python3 >/dev/null 2>&1 && python3 -c "$compatible" >/dev/null 2>&1; then
+  exec python3 "$skill_dir/scripts/arc_cli.py" "$@"
+fi
+
+if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys; assert sys.version_info >= (3, 12)' >/dev/null 2>&1; then
+  if command -v uv >/dev/null 2>&1; then
+    exec uv run --quiet --python '>=3.12' --script "$skill_dir/scripts/arc_cli.py" "$@"
+  fi
+  echo "arc-skill requires Python 3.12+ or uv; neither usable runtime was found" >&2
+  exit 127
+fi
+python_tag="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+runtime_root="${TMPDIR:-/tmp}/arc-skill-runtime-${UID:-0}/python-v1-${python_tag}"
+managed_python="$runtime_root/bin/python"
+if [[ ! -x "$managed_python" ]]; then
+  mkdir -p "$(dirname "$runtime_root")"
+  lock_dir="${runtime_root}.lock"
+  attempts=0
+  until mkdir "$lock_dir" 2>/dev/null; do
+    attempts=$((attempts + 1))
+    if [[ $attempts -ge 600 ]]; then
+      echo "arc-skill timed out waiting for its runtime setup lock: $lock_dir" >&2
+      exit 126
+    fi
+    sleep 0.1
+  done
+  trap 'rmdir "$lock_dir" 2>/dev/null || true' EXIT
+  if [[ ! -x "$managed_python" ]]; then
+    echo "arc-skill: preparing its private runtime (first use only)" >&2
+    python3 -m venv "$runtime_root"
+    "$managed_python" -m pip install --disable-pip-version-check --quiet \
+      'arc-agi==0.9.9' 'numpy>=2,<3' 'pillow>=10,<13'
+  fi
+  rmdir "$lock_dir"
+  trap - EXIT
+fi
+
+if ! "$managed_python" -c "$compatible" >/dev/null 2>&1; then
+  echo "arc-skill managed runtime failed its dependency fingerprint" >&2
+  exit 126
+fi
+exec "$managed_python" "$skill_dir/scripts/arc_cli.py" "$@"
