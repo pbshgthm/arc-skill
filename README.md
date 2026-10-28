@@ -25,7 +25,7 @@ all 25 games reproduced, none diverged.
 | Levels finished | **183 of 183** |
 | RHAE | **100.00** — the benchmark's own score, and its ceiling |
 | Actions | **7,645**, where the median human needs 17,135 |
-| Verified by | ARC scorecard [`24ddb219`](https://arcprize.org/scorecards/24ddb219-987e-464f-9050-6398a29cf5ac) |
+| Replay scorecard | ARC scorecard [`24ddb219`](https://arcprize.org/scorecards/24ddb219-987e-464f-9050-6398a29cf5ac) |
 
 The skill is 129 lines of instruction plus a 4,343-line command line tool.
 Neither one mentions a single one of those 25 games.
@@ -225,6 +225,6 @@ archives). Only `.arc/NOTES.md` is ever hand-edited.
 ---
 
 By [Poobesh Gowtham](https://poobesh.com) · [@pbshgthm](https://x.com/pbshgthm).
-August 2026. All 25 public games, Claude Code on Claude Opus 5, replayed and
-verified by ARC on scorecard
+August 2026. All 25 public games, Claude Code on Claude Opus 5. The recorded
+runs were replayed through the ARC API, producing scorecard
 [`24ddb219`](https://arcprize.org/scorecards/24ddb219-987e-464f-9050-6398a29cf5ac).
